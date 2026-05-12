@@ -8,7 +8,9 @@ const fs = require("fs");
 
 const app = express();
 const axios = require("axios");
-
+require("dotenv").config();
+console.log(process.env.DB_HOST);
+console.log(process.env.DB_PORT);
 async function translateToTamil(text) {
   const res = await axios.get(
     `https://api.mymemory.translated.net/get?q=${text}&langpair=en|ta`
@@ -27,11 +29,23 @@ if (!fs.existsSync("uploads")) {
 }
 
 //  DB Connection
+
+// DB Connection
+console.log("DB HOST", process.env.DB_HOST);
+console.log("DB PORT", process.env.DB_PORT);
+
+const BASE_URL = process.env.BASE_URL;
+
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "rayesha",
-  database: "spicedb",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT),
+
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 db.connect((err) => {
@@ -234,7 +248,7 @@ app.get("/products", (req, res) => {
     const updated = result.map((item) => ({
       ...item,
       image: item.image
-        ? `http://192.168.29.155:5000/uploads/${item.image}`
+        ? `${BASE_URL}/uploads/${item.image}`
         : null,
     }));
 
@@ -727,7 +741,7 @@ app.post("/api/upload-profile/:id", upload.single("image"), (req, res) => {
 
       res.json({
         success: true,
-        imageUrl: `http://192.168.29.155:5000/uploads/${image}`,
+        imageUrl: `${BASE_URL}/uploads/${image}`,
       });
     }
   );
@@ -743,7 +757,7 @@ app.get("/api/profile/:id", (req, res) => {
 
       // ✅ Convert image filename → full URL
       user.image = user.image
-        ? `http://192.168.29.155:5000/uploads/${user.image}`
+        ? `${BASE_URL}/uploads/${user.image}`
         : null;
 
       res.json({
@@ -810,6 +824,8 @@ app.get("/api", (req, res) => {
   res.send("API Working ✅");
 });
 
-app.listen(5000, "0.0.0.0", () => {
-  console.log("🚀 Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("🚀 Server running on port", PORT);
 });
