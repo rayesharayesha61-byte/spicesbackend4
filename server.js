@@ -851,16 +851,26 @@ console.log("DB PORT", process.env.DB_PORT);
 
 const BASE_URL = process.env.BASE_URL;
 
+<<<<<<< HEAD
 const db = mysql.createPool({
+=======
+const db = mysql.createConnection({
+>>>>>>> b91404fdeb2dd6b73178dadbf8448d64f1c13b1f
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT),
 
+<<<<<<< HEAD
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
+=======
+  ssl: {
+    rejectUnauthorized: false,
+  },
+>>>>>>> b91404fdeb2dd6b73178dadbf8448d64f1c13b1f
 });
 
 db.connect((err) => {
@@ -1651,4 +1661,8 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("🚀 Server running on port", PORT);
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> b91404fdeb2dd6b73178dadbf8448d64f1c13b1f
