@@ -915,13 +915,14 @@ app.post("/api/login", (req, res) => {
   `;
 
   db.query(query, [email.trim(), password.trim()], (err, results) => {
-    if (err) {
-      console.log("DB Error:", err);
-      return res.status(500).json({
-        success: false,
-        message: "Server error",
-      });
-    }
+   if (err) {
+  console.log("DB Error:", err);
+
+  return res.status(500).json({
+    success: false,
+    error: err.message,
+  });
+}
 
     if (results.length > 0) {
       const user = results[0];
