@@ -871,13 +871,7 @@ const db = mysql.createPool({
 
 });
 
-db.connect((err) => {
-  if (err) {
-    console.log("DB Connection Error:", err);
-    return;
-  }
-  console.log(" MySQL Connected");
-});
+
 
 // Multer (Image Upload)
 const storage = multer.diskStorage({
