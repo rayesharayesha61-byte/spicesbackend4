@@ -1021,30 +1021,45 @@ app.post("/api/login", (req, res) => {
 // });
 app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
   try {
-    let { name_en, name_ta, location, phone, aadhar } = req.body;
+    // ✅ SAFE BODY READ
+    let { name_en, name_ta, location, phone, aadhar } = req.body || {};
 
+    // ✅ SAFE IMAGE HANDLING
     const image = req.file ? req.file.filename : null;
 
-    if (!name_en && !name_ta) {
-      return res.json({ success: false, message: "Name required" });
+    // 🔥 VALIDATION (SAFE)
+    if (!name_en?.trim() && !name_ta?.trim()) {
+      return res.json({
+        success: false,
+        message: "Name required",
+      });
     }
 
-    if (!location) {
-      return res.json({ success: false, message: "Location required" });
+    if (!location?.trim()) {
+      return res.json({
+        success: false,
+        message: "Location required",
+      });
     }
 
-    let location_en = location;
-    let location_ta = await translateToTamil(location);
-
+    // ✅ DEFAULT NAME FIX
     if (!name_en) name_en = name_ta;
     if (!name_ta) name_ta = name_en;
 
-    const dealerId = "D" + Date.now();
-    const email = `${dealerId}@dealer.com`; // ✅ FIXED
+    // 🔥 LOCATION TRANSLATION
+    let location_en = location;
+    let location_ta = await translateToTamil(location);
 
+    // 🔥 UNIQUE DEALER ID
+    const dealerId = "D" + Date.now();
+
+    // ⚠️ Email fixed (safe unique)
+    const email = `${dealerId}@dealer.com`;
+
+    // 🔥 PASSWORD GENERATE
     const password = Math.random().toString(36).slice(-8);
 
-    // 🔥 COUNT DEALERS
+    // 🔥 COUNT DEALERS LIMIT CHECK
     db.query(
       "SELECT COUNT(*) as total FROM users WHERE role='dealer'",
       (err, result) => {
@@ -1052,7 +1067,7 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
           console.log("COUNT ERROR:", err);
           return res.status(500).json({
             success: false,
-            message: err.message,
+            message: "Database error",
           });
         }
 
@@ -1088,7 +1103,7 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
               console.log("INSERT ERROR:", err);
               return res.status(500).json({
                 success: false,
-                message: err.message,
+                message: "Insert failed",
               });
             }
 
