@@ -941,6 +941,84 @@ app.post("/api/login", (req, res) => {
 });
 
 
+// app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
+//   try {
+//     let { name_en, name_ta, location, phone, aadhar } = req.body;
+
+//     const image = req.file ? req.file.filename : null;
+
+//     if (!name_en && !name_ta) {
+//       return res.json({ success: false, message: "Name required" });
+//     }
+
+//     if (!location) {
+//       return res.json({ success: false, message: "Location required" });
+//     }
+
+//     let location_en = location;
+//     let location_ta = await translateToTamil(location);
+
+//     if (!name_en) name_en = name_ta;
+//     if (!name_ta) name_ta = name_en;
+
+//     const dealerId = "D" + Date.now();
+//     const password = Math.random().toString(36).slice(-8);
+
+//     // ✅ FIRST CHECK COUNT
+//     db.query(
+//       "SELECT COUNT(*) as total FROM users WHERE role='dealer'",
+//       (err, result) => {
+//         if (err) {
+//           return res.status(500).json({ success: false });
+//         }
+
+//         if (result[0].total >= 5) {
+//           return res.json({
+//             success: false,
+//             message: "Only 5 dealers allowed",
+//           });
+//         }
+
+//         // ✅ INSERT ONLY IF < 5
+//         const query = `
+//           INSERT INTO users 
+//           (name_en, name_ta, email, password, role, phone, aadhar, location_en, location_ta, image)
+//           VALUES (?, ?, ?, ?, 'dealer', ?, ?, ?, ?, ?)
+//         `;
+
+//         db.query(
+//           query,
+//           [
+//             name_en,
+//             name_ta,
+//             dealerId,
+//             password,
+//             phone,
+//             aadhar,
+//             location_en,
+//             location_ta,
+//             image,
+//           ],
+//           (err) => {
+//             if (err) {
+//               console.log("INSERT ERROR:", err);
+//               return res.status(500).json({ success: false });
+//             }
+
+//             return res.json({
+//               success: true,
+//               dealerId,
+//               password,
+//             });
+//           }
+//         );
+//       }
+//     );
+//   } catch (err) {
+//     console.log("SERVER ERROR:", err);
+//     return res.status(500).json({ success: false });
+//   }
+// });
 app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
   try {
     let { name_en, name_ta, location, phone, aadhar } = req.body;
@@ -962,14 +1040,20 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
     if (!name_ta) name_ta = name_en;
 
     const dealerId = "D" + Date.now();
+    const email = `${dealerId}@dealer.com`; // ✅ FIXED
+
     const password = Math.random().toString(36).slice(-8);
 
-    // ✅ FIRST CHECK COUNT
+    // 🔥 COUNT DEALERS
     db.query(
       "SELECT COUNT(*) as total FROM users WHERE role='dealer'",
       (err, result) => {
         if (err) {
-          return res.status(500).json({ success: false });
+          console.log("COUNT ERROR:", err);
+          return res.status(500).json({
+            success: false,
+            message: err.message,
+          });
         }
 
         if (result[0].total >= 5) {
@@ -979,7 +1063,7 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
           });
         }
 
-        // ✅ INSERT ONLY IF < 5
+        // 🔥 INSERT DEALER
         const query = `
           INSERT INTO users 
           (name_en, name_ta, email, password, role, phone, aadhar, location_en, location_ta, image)
@@ -991,7 +1075,7 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
           [
             name_en,
             name_ta,
-            dealerId,
+            email,
             password,
             phone,
             aadhar,
@@ -1002,7 +1086,10 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
           (err) => {
             if (err) {
               console.log("INSERT ERROR:", err);
-              return res.status(500).json({ success: false });
+              return res.status(500).json({
+                success: false,
+                message: err.message,
+              });
             }
 
             return res.json({
@@ -1016,10 +1103,12 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
     );
   } catch (err) {
     console.log("SERVER ERROR:", err);
-    return res.status(500).json({ success: false });
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 });
-
 app.post("/api/products", upload.single("image"), (req, res) => {
   const { name, name_ta, description, price, origin, classType } = req.body;
 
