@@ -1099,13 +1099,13 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
             image,
           ],
           (err) => {
-            if (err) {
-              console.log("INSERT ERROR:", err);
-              return res.status(500).json({
-                success: false,
-                message: "Insert failed",
-              });
-            }
+               if (err) {
+  console.log("INSERT ERROR:", err);  // 👈 must
+  return res.status(500).json({
+    success: false,
+    message: err.sqlMessage || err.message
+  });
+}
 
             return res.json({
               success: true,
