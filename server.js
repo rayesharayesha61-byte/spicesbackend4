@@ -892,84 +892,183 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-app.post("/api/login", (req, res) => {
-  const { email, password } = req.body;
+// app.post("/api/login", (req, res) => {
+//   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.json({
-      success: false,
-      message: "Missing fields",
-    });
-  }
+//   if (!email || !password) {
+//     return res.json({
+//       success: false,
+//       message: "Missing fields",
+//     });
+//   }
 
-  const query = `
-    SELECT 
-      id,
-      name_en,
-      name_ta,
-      email,
-      role,
-      phone
-    FROM users 
-    WHERE email=? AND password=?
-  `;
+//   const query = `
+//     SELECT 
+//       id,
+//       name_en,
+//       name_ta,
+//       email,
+//       role,
+//       phone
+//     FROM users 
+//     WHERE email=? AND password=?
+//   `;
 
-  db.query(query, [email.trim(), password.trim()], (err, results) => {
-   if (err) {
-  console.log("DB Error:", err);
+//   db.query(query, [email.trim(), password.trim()], (err, results) => {
+//    if (err) {
+//   console.log("DB Error:", err);
 
-  return res.status(500).json({
-    success: false,
-    error: err.message,
-  });
-}
+//   return res.status(500).json({
+//     success: false,
+//     error: err.message,
+//   });
+// }
 
-    if (results.length > 0) {
-      const user = results[0];
+//     if (results.length > 0) {
+//       const user = results[0];
 
-      return res.json({
-        success: true,
-        user: user,
-      });
-    } else {
-      return res.json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
-  });
-});
+//       return res.json({
+//         success: true,
+//         user: user,
+//       });
+//     } else {
+//       return res.json({
+//         success: false,
+//         message: "Invalid credentials",
+//       });
+//     }
+//   });
+// });
 
 
+// // app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
+// //   try {
+// //     let { name_en, name_ta, location, phone, aadhar } = req.body;
+
+// //     const image = req.file ? req.file.filename : null;
+
+// //     if (!name_en && !name_ta) {
+// //       return res.json({ success: false, message: "Name required" });
+// //     }
+
+// //     if (!location) {
+// //       return res.json({ success: false, message: "Location required" });
+// //     }
+
+// //     let location_en = location;
+// //     let location_ta = await translateToTamil(location);
+
+// //     if (!name_en) name_en = name_ta;
+// //     if (!name_ta) name_ta = name_en;
+
+// //     const dealerId = "D" + Date.now();
+// //     const password = Math.random().toString(36).slice(-8);
+
+// //     // ✅ FIRST CHECK COUNT
+// //     db.query(
+// //       "SELECT COUNT(*) as total FROM users WHERE role='dealer'",
+// //       (err, result) => {
+// //         if (err) {
+// //           return res.status(500).json({ success: false });
+// //         }
+
+// //         if (result[0].total >= 5) {
+// //           return res.json({
+// //             success: false,
+// //             message: "Only 5 dealers allowed",
+// //           });
+// //         }
+
+// //         // ✅ INSERT ONLY IF < 5
+// //         const query = `
+// //           INSERT INTO users 
+// //           (name_en, name_ta, email, password, role, phone, aadhar, location_en, location_ta, image)
+// //           VALUES (?, ?, ?, ?, 'dealer', ?, ?, ?, ?, ?)
+// //         `;
+
+// //         db.query(
+// //           query,
+// //           [
+// //             name_en,
+// //             name_ta,
+// //             dealerId,
+// //             password,
+// //             phone,
+// //             aadhar,
+// //             location_en,
+// //             location_ta,
+// //             image,
+// //           ],
+// //           (err) => {
+// //             if (err) {
+// //               console.log("INSERT ERROR:", err);
+// //               return res.status(500).json({ success: false });
+// //             }
+
+// //             return res.json({
+// //               success: true,
+// //               dealerId,
+// //               password,
+// //             });
+// //           }
+// //         );
+// //       }
+// //     );
+// //   } catch (err) {
+// //     console.log("SERVER ERROR:", err);
+// //     return res.status(500).json({ success: false });
+// //   }
+// // });
 // app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
 //   try {
-//     let { name_en, name_ta, location, phone, aadhar } = req.body;
+//     // ✅ SAFE BODY READ
+//     let { name_en, name_ta, location, phone, aadhar } = req.body || {};
 
+//     // ✅ SAFE IMAGE HANDLING
 //     const image = req.file ? req.file.filename : null;
 
-//     if (!name_en && !name_ta) {
-//       return res.json({ success: false, message: "Name required" });
+//     // 🔥 VALIDATION (SAFE)
+//     if (!name_en?.trim() && !name_ta?.trim()) {
+//       return res.json({
+//         success: false,
+//         message: "Name required",
+//       });
 //     }
 
-//     if (!location) {
-//       return res.json({ success: false, message: "Location required" });
+//     if (!location?.trim()) {
+//       return res.json({
+//         success: false,
+//         message: "Location required",
+//       });
 //     }
 
-//     let location_en = location;
-//     let location_ta = await translateToTamil(location);
-
+//     // ✅ DEFAULT NAME FIX
 //     if (!name_en) name_en = name_ta;
 //     if (!name_ta) name_ta = name_en;
 
+//     // 🔥 LOCATION TRANSLATION
+//     let location_en = location;
+//     let location_ta = await translateToTamil(location);
+
+//     // 🔥 UNIQUE DEALER ID
 //     const dealerId = "D" + Date.now();
+
+//     // ⚠️ Email fixed (safe unique)
+//     const email = `${dealerId}@dealer.com`;
+
+//     // 🔥 PASSWORD GENERATE
 //     const password = Math.random().toString(36).slice(-8);
 
-//     // ✅ FIRST CHECK COUNT
+//     // 🔥 COUNT DEALERS LIMIT CHECK
 //     db.query(
 //       "SELECT COUNT(*) as total FROM users WHERE role='dealer'",
 //       (err, result) => {
 //         if (err) {
-//           return res.status(500).json({ success: false });
+//           console.log("COUNT ERROR:", err);
+//           return res.status(500).json({
+//             success: false,
+//             message: "Database error",
+//           });
 //         }
 
 //         if (result[0].total >= 5) {
@@ -979,7 +1078,7 @@ app.post("/api/login", (req, res) => {
 //           });
 //         }
 
-//         // ✅ INSERT ONLY IF < 5
+//         // 🔥 INSERT DEALER
 //         const query = `
 //           INSERT INTO users 
 //           (name_en, name_ta, email, password, role, phone, aadhar, location_en, location_ta, image)
@@ -991,7 +1090,7 @@ app.post("/api/login", (req, res) => {
 //           [
 //             name_en,
 //             name_ta,
-//             dealerId,
+//             email,
 //             password,
 //             phone,
 //             aadhar,
@@ -1000,10 +1099,13 @@ app.post("/api/login", (req, res) => {
 //             image,
 //           ],
 //           (err) => {
-//             if (err) {
-//               console.log("INSERT ERROR:", err);
-//               return res.status(500).json({ success: false });
-//             }
+//                if (err) {
+//   console.log("INSERT ERROR:", err);  // 👈 must
+//   return res.status(500).json({
+//     success: false,
+//     message: err.sqlMessage || err.message
+//   });
+// }
 
 //             return res.json({
 //               success: true,
@@ -1016,77 +1118,84 @@ app.post("/api/login", (req, res) => {
 //     );
 //   } catch (err) {
 //     console.log("SERVER ERROR:", err);
-//     return res.status(500).json({ success: false });
+//     return res.status(500).json({
+//       success: false,
+//       message: err.message,
+//     });
 //   }
 // });
-app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
-  try {
-    // ✅ SAFE BODY READ
-    let { name_en, name_ta, location, phone, aadhar } = req.body || {};
+app.post("/api/login", (req, res) => {
+  let { email, password } = req.body;
 
-    // ✅ SAFE IMAGE HANDLING
+  if (!email || !password) {
+    return res.json({ success: false, message: "Missing fields" });
+  }
+
+  const sql = `
+    SELECT id, name_en, name_ta, email, role, phone
+    FROM users
+    WHERE email = ? AND password = ?
+  `;
+
+  db.query(sql, [email.trim(), password.trim()], (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+
+    if (results.length > 0) {
+      return res.json({
+        success: true,
+        user: results[0],
+      });
+    }
+
+    return res.json({
+      success: false,
+      message: "Invalid credentials",
+    });
+  });
+});app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
+  try {
+    let { name_en, name_ta, location, phone, aadhar } = req.body || {};
     const image = req.file ? req.file.filename : null;
 
-    // 🔥 VALIDATION (SAFE)
     if (!name_en?.trim() && !name_ta?.trim()) {
-      return res.json({
-        success: false,
-        message: "Name required",
-      });
+      return res.json({ success: false, message: "Name required" });
     }
 
     if (!location?.trim()) {
-      return res.json({
-        success: false,
-        message: "Location required",
-      });
+      return res.json({ success: false, message: "Location required" });
     }
 
-    // ✅ DEFAULT NAME FIX
-    if (!name_en) name_en = name_ta;
-    if (!name_ta) name_ta = name_en;
+    name_en = name_en || name_ta;
+    name_ta = name_ta || name_en;
 
-    // 🔥 LOCATION TRANSLATION
+    const dealerId = "D" + Date.now();
+    const email = `${dealerId}`;
+    const password = Math.random().toString(36).slice(2, 10);
+
     let location_en = location;
     let location_ta = await translateToTamil(location);
 
-    // 🔥 UNIQUE DEALER ID
-    const dealerId = "D" + Date.now();
-
-    // ⚠️ Email fixed (safe unique)
-    const email = `${dealerId}@dealer.com`;
-
-    // 🔥 PASSWORD GENERATE
-    const password = Math.random().toString(36).slice(-8);
-
-    // 🔥 COUNT DEALERS LIMIT CHECK
     db.query(
       "SELECT COUNT(*) as total FROM users WHERE role='dealer'",
       (err, result) => {
         if (err) {
-          console.log("COUNT ERROR:", err);
-          return res.status(500).json({
-            success: false,
-            message: "Database error",
-          });
+          return res.status(500).json({ success: false, message: "DB error" });
         }
 
         if (result[0].total >= 5) {
-          return res.json({
-            success: false,
-            message: "Only 5 dealers allowed",
-          });
+          return res.json({ success: false, message: "Only 5 dealers allowed" });
         }
 
-        // 🔥 INSERT DEALER
-        const query = `
-          INSERT INTO users 
+        const sql = `
+          INSERT INTO users
           (name_en, name_ta, email, password, role, phone, aadhar, location_en, location_ta, image)
           VALUES (?, ?, ?, ?, 'dealer', ?, ?, ?, ?, ?)
         `;
 
         db.query(
-          query,
+          sql,
           [
             name_en,
             name_ta,
@@ -1099,17 +1208,18 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
             image,
           ],
           (err) => {
-               if (err) {
-  console.log("INSERT ERROR:", err);  // 👈 must
-  return res.status(500).json({
-    success: false,
-    message: err.sqlMessage || err.message
-  });
-}
+            if (err) {
+              console.log("INSERT ERROR:", err);
+              return res.status(500).json({
+                success: false,
+                message: err.sqlMessage || err.message,
+              });
+            }
 
             return res.json({
               success: true,
               dealerId,
+              email,        // 🔥 IMPORTANT FIX
               password,
             });
           }
@@ -1117,7 +1227,6 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
       }
     );
   } catch (err) {
-    console.log("SERVER ERROR:", err);
     return res.status(500).json({
       success: false,
       message: err.message,
