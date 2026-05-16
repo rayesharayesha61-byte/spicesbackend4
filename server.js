@@ -840,7 +840,7 @@ app.use("/uploads", express.static("uploads"));
 
 //  Create uploads folder
 if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
+  fs.mkdirSync("uploads", { recursive: true });
 }
 
 //  DB Connection
