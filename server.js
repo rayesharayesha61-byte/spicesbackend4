@@ -1125,6 +1125,7 @@ app.post("/api/create-dealer", upload.single("image"), async (req, res) => {
   }
 });
 app.post("/api/products", upload.single("image"), (req, res) => {
+  console.log("FILE RECAIVED",req.file);
   const { name, name_ta, description, price, origin, classType } = req.body;
 
   const image = req.file ? req.file.filename : null;
