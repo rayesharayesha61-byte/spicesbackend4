@@ -849,7 +849,9 @@ if (!fs.existsSync("uploads")) {
 console.log("DB HOST", process.env.DB_HOST);
 console.log("DB PORT", process.env.DB_PORT);
 
-const BASE_URL = process.env.BASE_URL;
+
+
+const BASE_URL = process.env.BASE_URL || "http://192.168.29.155:5000";
 
 
 const db = mysql.createPool({
@@ -1287,7 +1289,7 @@ app.get("/products", (req, res) => {
     const updated = result.map((item) => ({
       ...item,
       image: item.image
-        ? `${BASE_URL}/uploads/${item.image}`
+        ? `${process.env.BASE_URL}/uploads/${item.image}`
         : null,
     }));
 
@@ -1780,7 +1782,7 @@ app.post("/api/upload-profile/:id", upload.single("image"), (req, res) => {
 
       res.json({
         success: true,
-        imageUrl: `${BASE_URL}/uploads/${image}`,
+        imageUrl: `${process.env.BASE_URL}/uploads/${image}`,
       });
     }
   );
@@ -1796,7 +1798,7 @@ app.get("/api/profile/:id", (req, res) => {
 
       // ✅ Convert image filename → full URL
       user.image = user.image
-        ? `${BASE_URL}/uploads/${user.image}`
+        ? `${process.env.BASE_URL}/uploads/${user.image}`
         : null;
 
       res.json({
