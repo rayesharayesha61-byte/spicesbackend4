@@ -1878,6 +1878,10 @@ app.get("/api", (req, res) => {
 app.get("/test-upload", (req, res) => {
   res.send("uploads working");
 });
+app.get("/files", (req, res) => {
+  const files = fs.readdirSync(path.join(__dirname, "uploads"));
+  res.json(files);
+});
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", () => {
