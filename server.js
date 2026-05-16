@@ -833,6 +833,7 @@ async function translateToTamil(text) {
 
   return res.data.responseData.translatedText;
 }
+
 //  Middleware
 app.use(express.json());
 app.use(cors());
@@ -885,7 +886,7 @@ const db = mysql.createPool({
 // Multer (Image Upload)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    cb(null, path.join(__dirname, "uploads"));
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + path.extname(file.originalname);
@@ -894,6 +895,8 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+
 // app.post("/api/login", (req, res) => {
 //   const { email, password } = req.body;
 
