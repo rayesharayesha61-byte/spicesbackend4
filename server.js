@@ -836,7 +836,7 @@ async function translateToTamil(text) {
 //  Middleware
 app.use(express.json());
 app.use(cors());
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 //  Create uploads folder
 if (!fs.existsSync("uploads")) {
@@ -1872,7 +1872,9 @@ app.get("/db-test", (req, res) => {
 app.get("/api", (req, res) => {
   res.send("API Working ✅");
 });
-
+app.get("/test-upload", (req, res) => {
+  res.send("uploads working");
+});
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", () => {
