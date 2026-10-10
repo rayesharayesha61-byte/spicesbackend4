@@ -1238,57 +1238,180 @@ app.post("/api/login", (req, res) => {
     });
   }
 });
+// app.post("/api/products", upload.single("image"), (req, res) => {
+//   console.log("FILE RECAIVED",req.file);
+//   const { name, name_ta, description, price, origin, classType } = req.body;
+
+//   const image = req.file ? req.file.filename : null;
+
+//   if (!name || !price) {
+//     return res.json({
+//       success: false,
+//       message: "Name and price required",
+//     });
+//   }
+
+//   const query = `
+//     INSERT INTO products 
+//     (name, name_ta, description, price, origin, class_type, image)
+//     VALUES (?, ?, ?, ?, ?, ?, ?)
+//   `;
+
+//   db.query(
+//     query,
+//     [
+//       name,
+//       name_ta || null, // ✅ important
+//       description,
+//       Number(price),
+//       origin,
+//       classType,
+//       image,
+//     ],
+//     (err) => {
+//       if (err) {
+//         console.log("Insert Error:", err);
+//         return res.status(500).json({ success: false });
+//       }
+
+//       res.json({
+//         success: true,
+//         message: "Product added",
+//       });
+//     }
+//   );
+// });
+// /* =========================================
+//     GET PRODUCTS 
+// ========================================= */
+// app.get("/products", (req, res) => {
+//   db.query("SELECT * FROM products", (err, result) => {
+//     if (err) return res.status(500).json({ success: false });
+
+//     // ✅ Add full image URL
+//     const updated = result.map((item) => ({
+//       ...item,
+//       image: item.image
+//         ? `${process.env.BASE_URL}/uploads/${item.image}`
+//         : null,
+//     }));
+
+//     res.json(updated);
+//   });
+// });
+
+
+/* =========================================
+   ADD PRODUCT WITH INITIAL STOCK
+========================================= */
+
 app.post("/api/products", upload.single("image"), (req, res) => {
-  console.log("FILE RECAIVED",req.file);
-  const { name, name_ta, description, price, origin, classType } = req.body;
+  console.log("FILE RECEIVED:", req.file);
+
+  const {
+    name,
+    name_ta,
+    description,
+    price,
+    origin,
+    classType,
+    stockQuantity,
+  } = req.body;
 
   const image = req.file ? req.file.filename : null;
 
-  if (!name || !price) {
-    return res.json({
+  // Validate required fields
+  if (
+    !name ||
+    !name.trim() ||
+    price === undefined ||
+    price === ""
+  ) {
+    return res.status(400).json({
       success: false,
-      message: "Name and price required",
+      message: "Name and price are required",
+    });
+  }
+
+  const productPrice = Number(price);
+  const stock = Number(stockQuantity);
+
+  if (!Number.isFinite(productPrice) || productPrice < 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid product price",
+    });
+  }
+
+  if (
+    stockQuantity === undefined ||
+    stockQuantity === "" ||
+    !Number.isFinite(stock) ||
+    stock < 0
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid stock quantity",
     });
   }
 
   const query = `
-    INSERT INTO products 
-    (name, name_ta, description, price, origin, class_type, image)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products
+    (
+      name,
+      name_ta,
+      description,
+      price,
+      origin,
+      class_type,
+      image,
+      stock_quantity
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     query,
     [
-      name,
-      name_ta || null, // ✅ important
-      description,
-      Number(price),
-      origin,
-      classType,
+      name.trim(),
+      name_ta?.trim() || null,
+      description?.trim() || null,
+      productPrice,
+      origin || null,
+      classType || "Whole",
       image,
+      stock,
     ],
-    (err) => {
+    (err, result) => {
       if (err) {
         console.log("Insert Error:", err);
-        return res.status(500).json({ success: false });
+
+        return res.status(500).json({
+          success: false,
+          message: "Failed to add product",
+        });
       }
 
-      res.json({
+      return res.status(201).json({
         success: true,
-        message: "Product added",
+        message: "Product added successfully",
+        productId: result.insertId,
+        stockQuantity: stock,
       });
     }
   );
 });
-/* =========================================
-    GET PRODUCTS 
-========================================= */
 app.get("/products", (req, res) => {
   db.query("SELECT * FROM products", (err, result) => {
-    if (err) return res.status(500).json({ success: false });
+    if (err) {
+      console.log("Fetch Products Error:", err);
 
-    // ✅ Add full image URL
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch products",
+      });
+    }
+
     const updated = result.map((item) => ({
       ...item,
       image: item.image
@@ -1299,8 +1422,6 @@ app.get("/products", (req, res) => {
     res.json(updated);
   });
 });
-
-
 
 app.get("/dealers", (req, res) => {
   try {
