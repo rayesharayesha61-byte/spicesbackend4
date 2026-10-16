@@ -1382,6 +1382,7 @@ app.post("/api/login", (req, res) => {
   });
 });
 
+
 app.post(
   "/api/create-dealer",
   upload.single("image"),
@@ -1390,24 +1391,21 @@ app.post(
       let {
         name_en,
         name_ta,
-        email,
-        password,
         phone,
         aadhar,
         location,
       } = req.body || {};
 
+      // Clean input values
       name_en = (name_en || "").trim();
       name_ta = (name_ta || "").trim();
-      email = (email || "").trim();
-      password = (password || "").trim();
       phone = (phone || "").trim();
       aadhar = (aadhar || "").trim();
       location = (location || "").trim();
 
       const image = req.file ? req.file.filename : null;
 
-      // Validate required fields
+      // 1. Validate dealer name
       if (!name_en && !name_ta) {
         return res.status(400).json({
           success: false,
@@ -1415,20 +1413,23 @@ app.post(
         });
       }
 
+      // 2. Validate phone
       if (!/^\d{10}$/.test(phone)) {
         return res.status(400).json({
           success: false,
-          message: "Phone number must contain exactly 10 digits",
+          message: "Phone number must contain 10 digits",
         });
       }
 
+      // 3. Validate Aadhaar
       if (!/^\d{12}$/.test(aadhar)) {
         return res.status(400).json({
           success: false,
-          message: "Aadhaar number must contain exactly 12 digits",
+          message: "Aadhaar number must contain 12 digits",
         });
       }
 
+      // 4. Validate location
       if (!location) {
         return res.status(400).json({
           success: false,
@@ -1436,44 +1437,49 @@ app.post(
         });
       }
 
-      // Use one name if the other language name is empty
+      // Use the available name for both language fields
       name_en = name_en || name_ta;
       name_ta = name_ta || name_en;
 
-      // Generate login credentials if not provided
+      // Generate unique login details
       const dealerId = "D" + Date.now();
-      email = email || dealerId;
-      password =
-        password ||
-        Math.random().toString(36).slice(2, 10);
+      const email = `${dealerId}@dealer.local`;
+      const password = Math.random().toString(36).slice(2, 10);
 
-      // Translate location to Tamil if translation is available
+      // Translate location to Tamil if available
       let location_ta = location;
 
       try {
         if (typeof translateToTamil === "function") {
-          const translated = await translateToTamil(location);
-          if (translated) {
-            location_ta = translated;
+          const translatedLocation =
+            await translateToTamil(location);
+
+          if (translatedLocation) {
+            location_ta = translatedLocation;
           }
         }
       } catch (translationError) {
-        console.log(
+        console.error(
           "Location translation failed:",
           translationError.message
         );
       }
 
-      // Check dealer limit
+      // 5. Check the maximum dealer limit
       db.query(
         "SELECT COUNT(*) AS total FROM users WHERE role = 'dealer'",
         (countError, countResults) => {
           if (countError) {
-            console.error("DEALER COUNT ERROR:", countError);
+            console.error(
+              "DEALER COUNT MYSQL ERROR:",
+              countError.code,
+              countError.sqlMessage || countError.message
+            );
 
             return res.status(500).json({
               success: false,
-              message: "Unable to check dealer limit",
+              message: "Failed to check dealer limit",
+              code: countError.code,
             });
           }
 
@@ -1486,7 +1492,7 @@ app.post(
             });
           }
 
-          // Insert into the existing users table
+          // 6. Insert into Cloud MySQL users table
           const sql = `
             INSERT INTO users (
               name_en,
@@ -1517,27 +1523,30 @@ app.post(
 
           db.query(sql, values, (insertError, result) => {
             if (insertError) {
-              console.error("CREATE DEALER INSERT ERROR:", {
-                code: insertError.code,
-                message: insertError.sqlMessage || insertError.message,
-                sqlState: insertError.sqlState,
-              });
-
-              if (insertError.code === "ER_DUP_ENTRY") {
-                return res.status(409).json({
-                  success: false,
-                  message: "This email already exists. Use a different email.",
-                });
-              }
+              console.error(
+                "========== CREATE DEALER MYSQL ERROR =========="
+              );
+              console.error("Code:", insertError.code);
+              console.error(
+                "Message:",
+                insertError.sqlMessage || insertError.message
+              );
+              console.error("SQL State:", insertError.sqlState);
+              console.error(
+                "==============================================="
+              );
 
               return res.status(500).json({
                 success: false,
-                message: "Unable to save dealer details",
+                message:
+                  insertError.sqlMessage ||
+                  "Unable to save dealer details",
+                code: insertError.code,
               });
             }
 
             console.log(
-              "Dealer created successfully. Database ID:",
+              "Dealer saved successfully. Database ID:",
               result.insertId
             );
 
@@ -1557,11 +1566,12 @@ app.post(
 
       return res.status(500).json({
         success: false,
-        message: "Server error while creating dealer",
+        message: error.message || "Internal server error",
       });
     }
   }
 );
+
 // app.post("/api/products", upload.single("image"), (req, res) => {
 //   console.log("FILE RECAIVED",req.file);
 //   const { name, name_ta, description, price, origin, classType } = req.body;
