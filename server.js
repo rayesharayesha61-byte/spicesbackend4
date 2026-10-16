@@ -1382,7 +1382,6 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-
 app.post(
   "/api/create-dealer",
   upload.single("image"),
@@ -1391,164 +1390,178 @@ app.post(
       let {
         name_en,
         name_ta,
-        location,
+        email,
+        password,
         phone,
         aadhar,
+        location,
       } = req.body || {};
 
       name_en = (name_en || "").trim();
       name_ta = (name_ta || "").trim();
-      location = (location || "").trim();
+      email = (email || "").trim();
+      password = (password || "").trim();
       phone = (phone || "").trim();
       aadhar = (aadhar || "").trim();
+      location = (location || "").trim();
 
+      const image = req.file ? req.file.filename : null;
+
+      // Validate required fields
       if (!name_en && !name_ta) {
         return res.status(400).json({
           success: false,
-          message: "Dealer name is required",
-        });
-      }
-
-      if (!location || !phone || !aadhar) {
-        return res.status(400).json({
-          success: false,
-          message: "All required fields must be filled",
+          message: "Enter dealer name",
         });
       }
 
       if (!/^\d{10}$/.test(phone)) {
         return res.status(400).json({
           success: false,
-          message: "Enter a valid 10-digit phone number",
+          message: "Phone number must contain exactly 10 digits",
         });
       }
 
       if (!/^\d{12}$/.test(aadhar)) {
         return res.status(400).json({
           success: false,
-          message: "Enter a valid 12-digit Aadhaar number",
+          message: "Aadhaar number must contain exactly 12 digits",
         });
       }
 
+      if (!location) {
+        return res.status(400).json({
+          success: false,
+          message: "Enter dealer location",
+        });
+      }
+
+      // Use one name if the other language name is empty
       name_en = name_en || name_ta;
       name_ta = name_ta || name_en;
 
-      // Check dealer limit and create the account.
+      // Generate login credentials if not provided
+      const dealerId = "D" + Date.now();
+      email = email || dealerId;
+      password =
+        password ||
+        Math.random().toString(36).slice(2, 10);
+
+      // Translate location to Tamil if translation is available
+      let location_ta = location;
+
+      try {
+        if (typeof translateToTamil === "function") {
+          const translated = await translateToTamil(location);
+          if (translated) {
+            location_ta = translated;
+          }
+        }
+      } catch (translationError) {
+        console.log(
+          "Location translation failed:",
+          translationError.message
+        );
+      }
+
+      // Check dealer limit
       db.query(
         "SELECT COUNT(*) AS total FROM users WHERE role = 'dealer'",
-        async (countError, results) => {
+        (countError, countResults) => {
           if (countError) {
             console.error("DEALER COUNT ERROR:", countError);
+
             return res.status(500).json({
               success: false,
               message: "Unable to check dealer limit",
             });
           }
 
-          if (Number(results[0].total) >= 5) {
+          const total = Number(countResults?.[0]?.total || 0);
+
+          if (total >= 5) {
             return res.status(400).json({
               success: false,
               message: "Only 5 dealers are allowed",
             });
           }
 
-          try {
-            // Use a unique login email.
-            const dealerId = "D" + Date.now();
-            const email = `${dealerId}@dealer.local`;
-
-            // Keep this only if the login endpoint supports bcrypt.
-            const bcrypt = require("bcryptjs");
-            const password = Math.random()
-              .toString(36)
-              .slice(2, 10);
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-
-            let location_ta = location;
-
-            try {
-              const translated = await translateToTamil(location);
-              if (translated) location_ta = translated;
-            } catch (err) {
-              console.log("Translation error:", err.message);
-            }
-
-            const imageName = req.file
-              ? req.file.filename
-              : null;
-
-            const sql = `
-              INSERT INTO users (
-                name_en,
-                name_ta,
-                email,
-                password,
-                role,
-                phone,
-                aadhar,
-                location_en,
-                location_ta,
-                image
-              )
-              VALUES (?, ?, ?, ?, 'dealer', ?, ?, ?, ?, ?)
-            `;
-
-            const values = [
+          // Insert into the existing users table
+          const sql = `
+            INSERT INTO users (
               name_en,
               name_ta,
               email,
-              hashedPassword,
+              password,
+              role,
               phone,
               aadhar,
-              location,
+              location_en,
               location_ta,
-              imageName,
-            ];
+              image
+            )
+            VALUES (?, ?, ?, ?, 'dealer', ?, ?, ?, ?, ?)
+          `;
 
-            db.query(sql, values, (insertError, result) => {
-              if (insertError) {
-                console.error("DEALER INSERT ERROR:", {
-                  code: insertError.code,
-                  message: insertError.sqlMessage,
-                });
+          const values = [
+            name_en,
+            name_ta,
+            email,
+            password,
+            phone,
+            aadhar,
+            location,
+            location_ta,
+            image,
+          ];
 
-                return res.status(500).json({
+          db.query(sql, values, (insertError, result) => {
+            if (insertError) {
+              console.error("CREATE DEALER INSERT ERROR:", {
+                code: insertError.code,
+                message: insertError.sqlMessage || insertError.message,
+                sqlState: insertError.sqlState,
+              });
+
+              if (insertError.code === "ER_DUP_ENTRY") {
+                return res.status(409).json({
                   success: false,
-                  message: "Unable to save dealer details",
+                  message: "This email already exists. Use a different email.",
                 });
               }
 
-              return res.status(201).json({
-                success: true,
-                message: "Dealer created successfully",
-                id: result.insertId,
-                dealerId,
-                email,
-                password,
+              return res.status(500).json({
+                success: false,
+                message: "Unable to save dealer details",
               });
-            });
-          } catch (err) {
-            console.error("DEALER CREATE ERROR:", err);
+            }
 
-            return res.status(500).json({
-              success: false,
-              message: "Unable to create dealer account",
+            console.log(
+              "Dealer created successfully. Database ID:",
+              result.insertId
+            );
+
+            return res.status(201).json({
+              success: true,
+              message: "Dealer created successfully",
+              id: result.insertId,
+              dealerId,
+              email,
+              password,
             });
-          }
+          });
         }
       );
     } catch (error) {
-      console.error("CREATE DEALER ERROR:", error);
+      console.error("CREATE DEALER ROUTE ERROR:", error);
 
       return res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: "Server error while creating dealer",
       });
     }
   }
 );
-
 // app.post("/api/products", upload.single("image"), (req, res) => {
 //   console.log("FILE RECAIVED",req.file);
 //   const { name, name_ta, description, price, origin, classType } = req.body;
