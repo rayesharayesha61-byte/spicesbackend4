@@ -1881,35 +1881,49 @@ app.get("/dealers", (req, res) => {
     const lang = req.query.lang || "en";
 
     const sql = `
-      SELECT 
+      SELECT
         id,
+        email,
         name_en,
         name_ta,
         phone,
         location_en,
         location_ta
-      FROM users 
+      FROM users
       WHERE role = 'dealer'
     `;
 
     db.query(sql, (err, result) => {
       if (err) {
         console.log("DB ERROR:", err);
-        return res.status(500).json({ success: false });
+        return res.status(500).json({
+          success: false,
+          message: "Unable to fetch dealers",
+        });
       }
 
       const formatted = result.map((d) => ({
         id: d.id,
-        name: lang === "ta" ? d.name_ta : d.name_en,
-        location: lang === "ta" ? d.location_ta : d.location_en,
+        email: d.email,
+        name:
+          lang === "ta"
+            ? d.name_ta
+            : d.name_en,
+        location:
+          lang === "ta"
+            ? d.location_ta
+            : d.location_en,
         phone: d.phone,
       }));
 
-      return res.json(formatted); // ✅ single response
+      return res.json(formatted);
     });
   } catch (err) {
     console.log("SERVER ERROR:", err);
-    res.status(500).json({ success: false });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 });
 app.post("/update-payment", (req, res) => {
@@ -2038,6 +2052,48 @@ app.delete("/api/dealers/:id", (req, res) => {
       dealerId,
     });
   });
+});
+// Get dealer details by dealer database ID
+app.get("/api/dealer/:id/credentials", async (req, res) => {
+  try {
+    const dealerId = Number(req.params.id);
+
+    if (!Number.isInteger(dealerId) || dealerId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid dealer ID",
+      });
+    }
+
+    const [rows] = await db.execute(
+      `SELECT id, email, name_en
+       FROM users
+       WHERE id = ? AND role = 'dealer'`,
+      [dealerId]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Dealer not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      dealer: {
+        id: rows[0].id,
+        dealerId: rows[0].email,
+        name: rows[0].name_en,
+      },
+    });
+  } catch (error) {
+    console.error("Dealer details error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
 });
 app.put("/products/:id", (req, res) => {
   const { name, price, description, stock_quantity } = req.body;
