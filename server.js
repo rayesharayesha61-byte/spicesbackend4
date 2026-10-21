@@ -1999,7 +1999,46 @@ app.delete("/products/:id", (req, res) => {
     res.send({ message: "Deleted successfully" });
   });
 });
+// 🗑️ DELETE PARTICULAR DEALER
+app.delete("/api/dealers/:id", (req, res) => {
+  const dealerId = Number(req.params.id);
 
+  if (!Number.isInteger(dealerId) || dealerId <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid dealer ID",
+    });
+  }
+
+  const sql = `
+    DELETE FROM users
+    WHERE id = ? AND role = 'dealer'
+  `;
+
+  db.query(sql, [dealerId], (err, result) => {
+    if (err) {
+      console.error("Delete dealer error:", err);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete dealer",
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Dealer not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Dealer deleted successfully",
+      dealerId,
+    });
+  });
+});
 app.put("/products/:id", (req, res) => {
   const { name, price, description, stock_quantity } = req.body;
   const { id } = req.params;
