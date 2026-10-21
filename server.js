@@ -1905,14 +1905,9 @@ app.get("/dealers", (req, res) => {
       const formatted = result.map((d) => ({
         id: d.id,
         email: d.email,
-        name:
-          lang === "ta"
-            ? d.name_ta
-            : d.name_en,
+        name: lang === "ta" ? d.name_ta : d.name_en,
         location:
-          lang === "ta"
-            ? d.location_ta
-            : d.location_en,
+          lang === "ta" ? d.location_ta : d.location_en,
         phone: d.phone,
       }));
 
