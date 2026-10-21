@@ -1884,6 +1884,7 @@ app.get("/dealers", (req, res) => {
       SELECT
         id,
         email,
+        password,
         name_en,
         name_ta,
         phone,
@@ -1905,6 +1906,7 @@ app.get("/dealers", (req, res) => {
       const formatted = result.map((d) => ({
         id: d.id,
         email: d.email,
+        password:d.password,
         name: lang === "ta" ? d.name_ta : d.name_en,
         location:
           lang === "ta" ? d.location_ta : d.location_en,
