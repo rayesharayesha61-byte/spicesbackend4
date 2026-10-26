@@ -1442,7 +1442,7 @@ app.post(
       name_ta = name_ta || name_en;
 
       // Generate unique login details
-      const dealerId = "D" + Date.now();
+     const dealerId = "D" + String(Date.now()).slice(-3);
       const email = `${dealerId}@dealer.local`;
       const password = Math.random().toString(36).slice(2, 10);
 
